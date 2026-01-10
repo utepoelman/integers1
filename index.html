@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integers with Nugget 1</title>
+    <meta name="description" content="Interactive worksheet: Reading, Locating, and Comparing Integers.">
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        h1, h2 { color: #333; margin-bottom: 5px; text-align: center; }
+        p.subtitle { color: #666; margin-top: 0; margin-bottom: 20px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        /* PROGRESS BAR */
+        .progress-wrapper { display: flex; width: 100%; max-width: 800px; margin-bottom: 15px; height: 30px; background-color: #e9ecef; border-radius: 15px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+        .progress-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: #aaa; background-color: #e9ecef; transition: all 0.3s ease; cursor: default; }
+        .progress-segment.active { background-color: #3498db; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .progress-segment.done { background-color: #2ecc71; color: white; }
+
+        /* CONTROL BUTTONS (TOP) */
+        .control-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .control-btn { padding: 8px 16px; border: 1px solid #ccc; background: white; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #555; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 140px; }
+        .control-btn:hover { background: #f8f9fa; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .control-btn.help-btn { border-color: #3498db; color: #3498db; }
+        .control-btn.confirming { border-color: #e67e22; color: #e67e22; background: #fff8f0; }
+
+        /* SECTIONS */
+        .game-section { display: none; width: 100%; max-width: 800px; flex-direction: column; gap: 20px; animation: fadeIn 0.5s; padding-bottom: 40px; }
+        .game-section.active { display: flex; }
+
+        /* CARDS & INPUTS */
+        .question-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .question-row { display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 15px; width: 100%; }
+        
+        input[type="text"], input[type="number"] { 
+            width: 60px; padding: 8px; text-align: center; font-size: 18px; border: 2px solid #ddd; border-radius: 8px; outline: none; transition: 0.2s; 
+        }
+        select {
+            width: 70px; padding: 8px; text-align: center; font-size: 18px; border: 2px solid #ddd; border-radius: 8px; outline: none; transition: 0.2s; cursor: pointer; background-color: white;
+        }
+        
+        /* Input/Select States */
+        input.correct, select.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        input.incorrect, select.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        /* NAVIGATION BUTTONS (BOTTOM) */
+        .nav-btn { 
+            margin-top: 10px; padding: 12px 30px; font-size: 18px; background-color: #3498db; color: white; border: none; border-radius: 25px; cursor: pointer; transition: transform 0.2s, background 0.2s; align-self: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            display: none; /* Hidden by default */
+        }
+        .nav-btn:hover { background-color: #2980b9; transform: translateY(-2px); }
+
+        /* NUMBER LINE STYLES */
+        .number-line-container { width: 100%; height: 120px; position: relative; margin-bottom: 10px; overflow-x: auto; user-select: none; }
+        .nl-svg { width: 100%; height: 100%; min-width: 600px; }
+        .nl-line { stroke: #333; stroke-width: 2; }
+        .nl-tick { stroke: #333; stroke-width: 2; }
+        .nl-text { font-size: 14px; fill: #555; text-anchor: middle; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Interactive Circles for Part 2 */
+        .nl-interactive-circle { cursor: pointer; fill: white; stroke: #333; stroke-width: 2; transition: all 0.2s; }
+        .nl-interactive-circle:hover { fill: #f0f0f0; stroke: #3498db; stroke-width: 3; }
+        .nl-interactive-circle.correct { fill: #2ecc71; stroke: #27ae60; } 
+        .nl-interactive-circle.incorrect { fill: #e74c3c; stroke: #c0392b; }
+
+        .nugget-img-on-line { position: absolute; width: 50px; height: auto; transition: left 0.5s ease; bottom: 45px; transform: translateX(-50%); pointer-events: none; }
+
+        /* MODALS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; text-align: center; max-width: 550px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+        
+        .help-grid { display: flex; gap: 20px; align-items: flex-start; text-align: left; margin-top: 10px; }
+        .help-nugget { width: 80px; text-align: center; flex-shrink: 0; }
+        .help-nugget img { width: 100%; border-radius: 50%; border: 3px solid #eee; }
+        .help-text { flex: 1; font-size: 16px; color: #444; line-height: 1.5; }
+
+        /* CERTIFICATE VIEW */
+        .cert-view { 
+            display: none; 
+            width: 700px; 
+            max-width: 95%;
+            padding: 20px 40px; 
+            background: #e8f8f5; 
+            border: 8px double #16a085; 
+            text-align: center; 
+            position: relative; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            margin: 10px auto; 
+        }
+        .cert-title { font-size: 36px; color: #2c3e50; margin-bottom: 5px; font-family: 'Georgia', serif; margin-top: 10px; }
+        .cert-text { font-size: 18px; color: #555; margin: 5px 0; }
+        .cert-name { font-size: 32px; color: #d35400; font-weight: bold; margin: 10px 0; border-bottom: 2px solid #ccc; display: inline-block; padding: 0 20px; min-width: 200px; }
+        
+        .cert-body-grid { display: flex; align-items: center; justify-content: center; gap: 30px; margin: 15px 0; }
+        
+        .cert-nugget-img {
+            width: 90px;
+            height: 110px; 
+            object-fit: cover;
+            border-radius: 50%; 
+            border: 5px solid #16a085; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background: white;
+        }
+
+        .cert-footer { margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .cert-sig { font-family: 'Brush Script MT', cursive; font-size: 24px; color: #333; }
+        .paw-print { font-size: 30px; color: #333; opacity: 0.6; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <h1>Integers with Nugget 1</h1>
+    <p class="subtitle">Join Nugget on the number line! Read integers, find positions, and compare values.</p>
+
+    <div class="progress-wrapper">
+        <div id="prog1" class="progress-segment active">1. Reading</div>
+        <div id="prog2" class="progress-segment">2. Locating</div>
+        <div id="prog3" class="progress-segment">3. Comparing</div>
+    </div>
+
+    <div class="control-bar">
+        <button class="control-btn help-btn" onclick="openHelp()">How do I do this? Ask Nugget!</button>
+        <button id="btnReset" class="control-btn" onclick="confirmAction('btnReset', 'Reset Answers', resetCurrentPart)">Reset Answers</button>
+        <button id="btnFresh" class="control-btn" onclick="confirmAction('btnFresh', 'Fresh Numbers', freshNumbers)">Fresh Numbers</button>
+    </div>
+
+    <div id="game-container">
+        
+        <div id="part1" class="game-section active">
+            <div id="part1-questions"></div>
+            <button id="btnPart1" class="nav-btn" onclick="nextPart(2)">Well done! Part 1 is complete. Go to Part 2</button>
+        </div>
+
+        <div id="part2" class="game-section">
+            <div id="part2-questions"></div>
+            <button id="btnPart2" class="nav-btn" onclick="nextPart(3)">Great job! Part 2 is complete. Go to Part 3</button>
+        </div>
+
+        <div id="part3" class="game-section">
+            <div id="part3-questions"></div>
+            <button id="btnPart3" class="nav-btn" onclick="openCertificateModal()">Fantastic! All done. Get your Certificate</button>
+        </div>
+
+    </div>
+
+    <div id="helpModal" class="modal-overlay" onclick="if(event.target===this) closeHelp()">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeHelp()">&times;</span>
+            <h2 style="text-align: left; margin-top:0;">Nugget says:</h2>
+            <div class="help-grid">
+                <div class="help-nugget">
+                    <img src="Nugget.png" alt="Nugget">
+                    <div style="font-size: 12px; font-weight: bold; margin-top: 5px; color: #555;">Nugget</div>
+                </div>
+                <div class="help-text" id="help-text-content">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="certModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Great Job!</h2>
+            <p>You've completed all integer tasks.</p>
+            <p>Enter your name for the certificate:</p>
+            <input type="text" id="nameInput" placeholder="Your Name" style="width: 80%; margin-bottom: 20px;">
+            <br>
+            <button class="nav-btn" style="display:inline-block;" onclick="generateCertificate()">Get Certificate</button>
+        </div>
+    </div>
+
+    <div id="certificate-view" class="cert-view">
+        <h1 class="cert-title">Certificate of Achievement</h1>
+        <p class="cert-text">This certifies that</p>
+        <div id="display-name" class="cert-name">Student Name</div>
+        <p class="cert-text">has successfully mastered</p>
+        
+        <div class="cert-body-grid">
+            <img src="Nugget.png" alt="Nugget" class="cert-nugget-img">
+            <div style="text-align: left;">
+                <h2 style="color: #16a085; margin: 0; font-size: 24px;">Integer Basics</h2>
+                <p style="margin: 5px 0; font-size: 14px; color: #666;">Reading • Locating • Comparing</p>
+            </div>
+        </div>
+
+        <div class="cert-footer">
+            <div style="text-align: left;">
+                <div id="display-time" style="font-size: 12px; color: #999;"></div>
+                <div id="display-code" style="font-size: 12px; color: #999;"></div>
+            </div>
+            <div style="text-align: right;">
+                <div class="cert-sig">Nugget <span class="paw-print">🐾</span></div>
+                <div style="border-top: 1px solid #333; width: 120px; margin-top: 2px;"></div>
+                <div style="font-size: 11px; color: #666;">Official Signature</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPart = 1;
+        let confirmTimers = {};
+
+        /* --- LOGIC HELPERS --- */
+        
+        function checkInput(input, correctVal, checkFunction) {
+            const val = input.value.trim();
+            let isCorrect = false;
+            
+            if(!isNaN(val) && !isNaN(correctVal) && val !== '') {
+                isCorrect = Number(val) === Number(correctVal);
+            } else {
+                isCorrect = val.toLowerCase() === correctVal.toString().toLowerCase();
+            }
+
+            if (isCorrect) {
+                input.className = 'correct';
+            } else {
+                input.className = 'incorrect';
+            }
+            if (checkFunction) checkFunction();
+        }
+
+        // For Select Dropdowns in Part 3
+        function checkSelect(select, correctVal, checkFunction) {
+            if (select.value === correctVal) {
+                select.className = 'correct';
+                select.blur(); 
+            } else {
+                select.className = 'incorrect';
+            }
+            if (checkFunction) checkFunction();
+        }
+
+        function checkAllCorrect(containerId, btnId) {
+            const container = document.getElementById(containerId);
+            const inputs = container.querySelectorAll('input, select');
+            const allDone = Array.from(inputs).every(i => i.classList.contains('correct'));
+            const btn = document.getElementById(btnId);
+            if(btn) btn.style.display = allDone ? 'block' : 'none';
+        }
+
+        function checkPart2Completion() {
+            const container = document.getElementById('part2-questions');
+            const cards = container.querySelectorAll('.question-card');
+            let completed = 0;
+            cards.forEach(card => {
+                if(card.querySelector('.nl-interactive-circle.correct')) completed++;
+            });
+            const btn = document.getElementById('btnPart2');
+            btn.style.display = (completed === cards.length) ? 'block' : 'none';
+        }
+
+        /* --- SVG GENERATOR --- */
+        function createNumberLineSVG(id, rangeMin, rangeMax, targetForClick) {
+            const width = 700;
+            const height = 100;
+            const margin = 50;
+            const yLine = 50;
+            const totalUnits = rangeMax - rangeMin;
+            const unitWidth = (width - 2*margin) / totalUnits;
+            const labeledValues = [-10, -5, 0, 5, 10]; 
+
+            let svg = `<svg class="nl-svg" viewBox="0 0 ${width} ${height}">`;
+            
+            // Main Line & Arrows
+            svg += `<line x1="${margin}" y1="${yLine}" x2="${width-margin}" y2="${yLine}" class="nl-line" />`;
+            svg += `<polygon points="${width-margin},${yLine-5} ${width-margin+10},${yLine} ${width-margin},${yLine+5}" fill="#333" />`;
+            svg += `<polygon points="${margin},${yLine-5} ${margin-10},${yLine} ${margin},${yLine+5}" fill="#333" />`;
+
+            for (let i = rangeMin; i <= rangeMax; i++) {
+                const x = margin + (i - rangeMin) * unitWidth;
+                
+                // Ticks
+                svg += `<line x1="${x}" y1="${yLine-5}" x2="${x}" y2="${yLine+5}" class="nl-tick" />`;
+                
+                // Labels (Only strict set)
+                if (labeledValues.includes(i)) {
+                    svg += `<text x="${x}" y="${yLine+30}" class="nl-text">${i}</text>`;
+                }
+
+                // Interactive Circles (Only for Part 2)
+                if (targetForClick !== null && targetForClick !== undefined) {
+                    svg += `<circle cx="${x}" cy="${yLine}" r="7" 
+                            class="nl-interactive-circle" 
+                            onclick="handleCircleClick(this, ${i}, ${targetForClick})" />`;
+                }
+            }
+            svg += `</svg>`;
+            
+            const getLeftPercent = (val) => {
+                const percent = ((val - rangeMin) / totalUnits) * ((width - 2*margin)/width) + (margin/width);
+                return percent * 100;
+            };
+
+            return { svg, getLeftPercent };
+        }
+
+        /* --- INTERACTION HANDLER FOR PART 2 (UPDATED) --- */
+        function handleCircleClick(el, val, target) {
+            // 1. TOGGLE LOGIC:
+            if (el.classList.contains('correct') || el.classList.contains('incorrect')) {
+                el.classList.remove('correct', 'incorrect');
+                checkPart2Completion();
+                return; 
+            }
+
+            // 2. SINGLE SELECTION LOGIC:
+            const parentSvg = el.closest('svg');
+            parentSvg.querySelectorAll('.nl-interactive-circle').forEach(c => {
+                c.classList.remove('correct', 'incorrect');
+            });
+
+            // 3. ACTIVATE CLICKED CIRCLE
+            if (val === target) {
+                el.classList.add('correct');
+            } else {
+                el.classList.add('incorrect');
+            }
+
+            // 4. CHECK OVERALL PROGRESS
+            checkPart2Completion();
+        }
+
+        /* --- CONTENT GENERATORS --- */
+        
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getTargetSet() {
+            const negatives = [-9, -8, -7, -6, -4, -3, -2, -1]; 
+            const positives = [1, 2, 3, 4, 6, 7, 8, 9]; 
+            
+            const pick = (arr, n) => {
+                const shuffled = shuffleArray([...arr]);
+                return shuffled.slice(0, n);
+            }
+
+            const chosenNeg = pick(negatives, 6);
+            const chosenPos = pick(positives, 3);
+            const chosenZero = [0]; 
+
+            let combined = [...chosenNeg, ...chosenPos, ...chosenZero];
+            return shuffleArray(combined);
+        }
+
+        function generatePart1() {
+            const container = document.getElementById('part1-questions');
+            const targets = getTargetSet(); // 10 shuffled targets
+            let html = `<h2>Part 1: Where is Nugget?</h2><p style="text-align:center;">Look at the number line. Type the integer where Nugget is standing.</p>`;
+
+            targets.forEach((target, i) => {
+                const nlData = createNumberLineSVG(`p1_${i}`, -10, 10, null);
+                
+                html += `
+                <div class="question-card">
+                    <div class="number-line-container">
+                        ${nlData.svg}
+                        <img src="Nugget.png" class="nugget-img-on-line" style="left: ${nlData.getLeftPercent(target)}%;">
+                    </div>
+                    <div class="question-row">
+                        <span>Nugget's Position:</span>
+                        <input type="text" oninput="checkInput(this, '${target}', () => checkAllCorrect('part1-questions', 'btnPart1'))">
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function generatePart2() {
+            const container = document.getElementById('part2-questions');
+            const targets = getTargetSet(); // 10 shuffled targets
+            let html = `<h2>Part 2: Find the Integer</h2><p style="text-align:center;">Click the correct circle on the number line.</p>`;
+
+            targets.forEach((target, i) => {
+                const nlData = createNumberLineSVG(`p2_${i}`, -10, 10, target);
+                html += `
+                <div class="question-card">
+                    <div class="question-row" style="margin-bottom:10px; margin-top:0;">
+                        <span style="font-size:20px;">Where is <b>${target}</b>?</span>
+                    </div>
+                    <div class="number-line-container">
+                        ${nlData.svg}
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function generatePart3() {
+            const container = document.getElementById('part3-questions');
+            let html = `<h2>Part 3: Compare Integers</h2><p style="text-align:center;">Select <b>&lt;</b>, <b>&gt;</b>, or <b>=</b>.</p>`;
+            html += `<div class="question-card" style="flex-direction:row; flex-wrap:wrap; gap:30px; justify-content:center;">`;
+
+            for(let i=0; i<10; i++) {
+                let a = Math.floor(Math.random() * 21) - 10;
+                let b = Math.floor(Math.random() * 21) - 10;
+                
+                if(Math.random() < 0.2) { b = a; }
+
+                let symbol = '=';
+                if(a < b) symbol = '<';
+                if(a > b) symbol = '>';
+
+                html += `
+                <div style="display:flex; align-items:center; gap:10px; font-size:24px; font-weight:bold; color:#555;">
+                    <span style="width:40px; text-align:right;">${a}</span>
+                    <select onchange="checkSelect(this, '${symbol}', () => checkAllCorrect('part3-questions', 'btnPart3'))">
+                        <option value="" disabled selected>?</option>
+                        <option value="<">&lt;</option>
+                        <option value=">">&gt;</option>
+                        <option value="=">=</option>
+                    </select>
+                    <span style="width:40px; text-align:left;">${b}</span>
+                </div>
+                `;
+                if (i % 2 !== 0 && i !== 9) html += `<div style="width:100%; height:1px; background:#eee; margin:5px 0;"></div>`;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        /* --- CONTROL FUNCTIONS --- */
+        
+        function confirmAction(btnId, originalText, actionFunc) {
+            const btn = document.getElementById(btnId);
+            
+            if (btn.classList.contains('confirming')) {
+                actionFunc();
+                clearTimeout(confirmTimers[btnId]);
+                btn.innerText = originalText;
+                btn.classList.remove('confirming');
+            } else {
+                btn.innerText = "Click again to confirm";
+                btn.classList.add('confirming');
+                if(confirmTimers[btnId]) clearTimeout(confirmTimers[btnId]);
+                confirmTimers[btnId] = setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('confirming');
+                }, 3000); 
+            }
+        }
+
+        function openHelp() {
+            const texts = {
+                1: "I am standing somewhere on the line! Look at the major numbers (-10, -5, 0, 5, 10). Count the small ticks to find exactly where I am, then type that number!",
+                2: "I need you to find a specific number. Read the question (e.g., 'Where is -7?'). Start at a number you know (like -5 or -10) and count the ticks until you find the right spot. Click the small circle there!",
+                3: "<b>How do we compare integers?</b><br><br>Think about the number line:<br>• A number is <b>bigger (>)</b> if it is further to the <b>RIGHT</b>.<br>• A number is <b>smaller (<)</b> if it is further to the <b>LEFT</b>.<br>• They are <b>equal (=)</b> if they are at the exact same spot.<br><br><i>Example: -2 is to the right of -5, so -2 > -5.</i>"
+            };
+            document.getElementById('help-text-content').innerHTML = texts[currentPart];
+            document.getElementById('helpModal').style.display = 'flex';
+        }
+
+        function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+
+        function resetCurrentPart() {
+            // Get the specific questions container
+            const container = document.getElementById(`part${currentPart}-questions`);
+            
+            // Clear inputs & selects
+            container.querySelectorAll('input').forEach(i => { i.value = ''; i.className = ''; });
+            container.querySelectorAll('select').forEach(s => { s.value = ''; s.className = ''; s.selectedIndex = 0; });
+
+            // Clear Interactive Circles
+            container.querySelectorAll('.nl-interactive-circle').forEach(c => {
+                c.classList.remove('correct', 'incorrect');
+            });
+
+            // Hide Navigation Button (found by ID in the parent section)
+            document.getElementById(`btnPart${currentPart}`).style.display = 'none';
+        }
+
+        function freshNumbers() {
+            if(currentPart === 1) generatePart1();
+            if(currentPart === 2) generatePart2();
+            if(currentPart === 3) generatePart3();
+            document.getElementById(`btnPart${currentPart}`).style.display = 'none';
+        }
+
+        function nextPart(n) {
+            document.querySelectorAll('.game-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.progress-segment').forEach(el => el.classList.remove('active'));
+            
+            currentPart = n;
+            document.getElementById(`part${n}`).classList.add('active');
+            
+            document.getElementById(`prog${n}`).classList.add('active');
+            for(let i=1; i<n; i++) document.getElementById(`prog${i}`).className = 'progress-segment done';
+
+            window.scrollTo(0,0);
+        }
+
+        /* --- CERTIFICATE --- */
+        function openCertificateModal() { document.getElementById('certModal').style.display = 'flex'; }
+        
+        function generateCertificate() {
+            const name = document.getElementById('nameInput').value.trim();
+            if(!name) { alert("Please enter your name."); return; }
+            
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('display-time').innerText = new Date().toLocaleString();
+            document.getElementById('display-code').innerText = "Code: " + Math.floor(1000 + Math.random() * 9000);
+            
+            document.getElementById('certModal').style.display = 'none';
+            document.getElementById('game-container').style.display = 'none';
+            document.querySelector('.progress-wrapper').style.display = 'none';
+            document.querySelector('.control-bar').style.display = 'none';
+            document.querySelector('.subtitle').style.display = 'none';
+            document.querySelector('h1').innerText = "Congratulations!";
+            
+            document.getElementById('certificate-view').style.display = 'block';
+        }
+
+        /* --- INIT --- */
+        window.onload = function() {
+            generatePart1();
+            generatePart2();
+            generatePart3();
+        };
+
+    </script>
+</body>
+</html>
